@@ -8,10 +8,13 @@ import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { FileInfoSheetComponent } from './file-info-sheet/file-info-sheet.component';
 import { Location } from '@angular/common';
 import { HydrusFileDownloadService } from './hydrus-file-download.service';
-import { take } from 'rxjs';
+import { HydrusFilesService } from './hydrus-files.service';
+import { take, firstValueFrom } from 'rxjs';
 import { canOpenInPhotopea, getPhotopeaUrlForFile } from './photopea';
 import { SettingsService } from './settings.service';
 import { MatLegacyButton as MatButton } from '@angular/material/legacy-button';
+import { MatLegacySnackBar as MatSnackBar } from '@angular/material/legacy-snack-bar';
+import { ErrorService } from './error.service';
 
 
 function isContentType(content: Content | Slide, type: string) {
@@ -27,11 +30,13 @@ export class PhotoswipeService {
     public platform: Platform,
     private bottomSheet: MatBottomSheet,
     private location: Location,
+    private filesService: HydrusFilesService,
+    private errorService: ErrorService,
     private downloadService: HydrusFileDownloadService,
     private settingsService: SettingsService,
     private appRef: ApplicationRef,
     private injector: EnvironmentInjector,
-
+    private snackbar: MatSnackBar,
   ) { }
 
   private processedFiles = new Map<string, SlideData>();
@@ -56,6 +61,51 @@ export class PhotoswipeService {
     }
 
     const pswp = new PhotoSwipe(options);
+
+    // Copy-pasted and modified from file-info-sheet.component.ts
+    const deleteFile = async () => {
+      try {
+        await this.filesService.deleteFile(pswp.currSlide.data.file.hash).toPromise();
+        this.snackbar.open('File sent to trash', undefined, {
+          duration: 2000
+        });
+      } catch (error) {
+        this.errorService.handleHydrusError(error);
+      }
+    }
+
+    const undeleteFile = async () => {
+      try {
+        await this.filesService.undeleteFile(pswp.currSlide.data.file.hash).toPromise();
+        this.snackbar.open('File removed from trash', undefined, {
+          duration: 2000
+        });
+      } catch (error) {
+        this.errorService.handleHydrusError(error);
+      }
+    }
+
+    const archiveFile = async () => {
+      try {
+        await this.filesService.archiveFile(pswp.currSlide.data.file.hash).toPromise();
+        this.snackbar.open('File archived', undefined, {
+          duration: 2000
+        });
+      } catch (error) {
+        this.errorService.handleHydrusError(error);
+      }
+    }
+
+    const unarchiveFile = async () => {
+      try {
+        await firstValueFrom(this.filesService.unarchiveFile(pswp.currSlide.data.file.hash));
+        this.snackbar.open('File moved to inbox', undefined, {
+          duration: 2000
+        });
+      } catch (error) {
+        this.errorService.handleHydrusError(error);
+      }
+    }
 
     pswp.addFilter('numItems', numItems => {
       return items.length;
@@ -127,6 +177,24 @@ export class PhotoswipeService {
     pswp.on('keydown', (e) => {
       if (this.bottomSheet._openedBottomSheetRef) {
         e.preventDefault();
+      }
+
+      // Archive and delete hotkeys
+      if (e.originalEvent.key === 'Delete') {
+        e.preventDefault();
+        if (e.originalEvent.shiftKey) {
+          undeleteFile();
+        } else {
+          deleteFile();
+        }
+      }
+      if (e.originalEvent.key === 'a') {
+        e.preventDefault();
+        if (e.originalEvent.shiftKey) {
+          unarchiveFile();
+        } else {
+          archiveFile();
+        }
       }
     });
 
