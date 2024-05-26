@@ -66,9 +66,10 @@ export class PhotoswipeService {
     const deleteFile = async () => {
       try {
         await this.filesService.deleteFile(pswp.currSlide.data.file.hash).toPromise();
-        this.snackbar.open('File sent to trash', undefined, {
+        this.snackbar.open('Previous file sent to trash', undefined, {
           duration: 2000
         });
+        pswp.next();
       } catch (error) {
         this.errorService.handleHydrusError(error);
       }
@@ -77,9 +78,10 @@ export class PhotoswipeService {
     const undeleteFile = async () => {
       try {
         await this.filesService.undeleteFile(pswp.currSlide.data.file.hash).toPromise();
-        this.snackbar.open('File removed from trash', undefined, {
+        this.snackbar.open('Previous file removed from trash', undefined, {
           duration: 2000
         });
+        pswp.next();
       } catch (error) {
         this.errorService.handleHydrusError(error);
       }
@@ -88,9 +90,10 @@ export class PhotoswipeService {
     const archiveFile = async () => {
       try {
         await this.filesService.archiveFile(pswp.currSlide.data.file.hash).toPromise();
-        this.snackbar.open('File archived', undefined, {
+        this.snackbar.open('Previous file archived', undefined, {
           duration: 2000
         });
+        pswp.next();
       } catch (error) {
         this.errorService.handleHydrusError(error);
       }
@@ -99,9 +102,10 @@ export class PhotoswipeService {
     const unarchiveFile = async () => {
       try {
         await firstValueFrom(this.filesService.unarchiveFile(pswp.currSlide.data.file.hash));
-        this.snackbar.open('File moved to inbox', undefined, {
+        this.snackbar.open('Previous file moved to inbox', undefined, {
           duration: 2000
         });
+        pswp.next();
       } catch (error) {
         this.errorService.handleHydrusError(error);
       }
