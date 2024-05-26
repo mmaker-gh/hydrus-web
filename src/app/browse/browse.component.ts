@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ChangeDetectionStrategy, OnDestroy, HostListener } from '@angular/core';
 import { SearchService } from '../search.service';
 import { HydrusFilesService } from '../hydrus-files.service';
 import { BehaviorSubject, catchError, combineLatest, filter, map, Observable, of, shareReplay, Subject, switchMap, tap } from 'rxjs';
@@ -116,6 +116,14 @@ export class BrowseComponent implements OnInit, AfterViewInit, OnDestroy {
 
   resetSort() {
     this.setSortInfo(defaultSort);
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    if (event.key === 'r' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      this.refresh$.next(null);
+    }
   }
 
 /*   search() {
