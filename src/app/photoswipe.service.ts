@@ -302,6 +302,22 @@ export class PhotoswipeService {
         img.src = file.thumbnail_url;
         img.className = 'pswp-video-placeholder'
         content.element.append(img);
+
+        if (this.platform.FIREFOX) {
+          let showControls = false;
+          content.element.onmousemove = (e) => {
+            const rect = content.element.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const height = rect.height;
+            showControls = y > height - 40;
+            const vid = img.previousSibling as HTMLVideoElement | null;
+            if (vid && showControls) {
+              vid.controls = true;
+            } else {
+              vid?.removeAttribute('controls');
+            }
+          }
+        }
       } else if(isContentType(content, 'audio')) {
         e.preventDefault();
 
