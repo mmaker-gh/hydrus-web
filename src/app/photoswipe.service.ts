@@ -317,6 +317,16 @@ export class PhotoswipeService {
               vid?.removeAttribute('controls');
             }
           }
+          content.element.onclick = (e) => {
+            const vid = img.previousSibling as HTMLVideoElement | null;
+            if (vid) {
+              if (vid.paused) {
+                vid.play();
+              } else {
+                vid.pause();
+              }
+            }
+          }
         }
       } else if(isContentType(content, 'audio')) {
         e.preventDefault();
