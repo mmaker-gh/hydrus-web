@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
-import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpHeaders, HttpParameterCodec } from '@angular/common/http';
 import { HydrusSortType } from './hydrus-sort';
 import { HydrusBasicFileFromAPI, HydrusFileFromAPI } from './hydrus-file';
 import { HydrusSearchTags, HydrusTagSearchTag, ServiceNamesOrKeysToActionsToTags, ServiceNamesOrKeysToTags, TagDisplayType, TagsToServiceKeysToSiblingsAndParents } from './hydrus-tags';
@@ -14,12 +14,52 @@ import { HydrusAddFileResponse } from './hydrus-upload.service';
 import { HydrusKeyVerificationData, HydrusRequestFileDomain, HydrusRequestFiles, HydrusRequestSingleFile } from './hydrus-api';
 import { HydrusJobStatus, HydrusJobStatusAddRequest, HydrusJobStatusUpdateRequest } from './hydrus-job-status';
 import { HydrusPage, HydrusPageListItem } from './hydrus-page';
+import { HydrusClientOptions } from './hydrus-client-options';
 
-type AngularHttpParams = HttpParams | {
+type AngularHttpParams =  {
   [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
 }
 
-/* eslint-disable @typescript-eslint/naming-convention, no-underscore-dangle, id-blacklist, id-match */
+
+class CustomHttpUrlEncodingCodec implements HttpParameterCodec {
+  /**
+   * Encodes a key name for a URL parameter or query-string.
+   * @param key The key name.
+   * @returns The encoded key name.
+   */
+  encodeKey(key: string): string {
+    return encodeURIComponent(key);
+  }
+
+  /**
+   * Encodes the value of a URL parameter or query-string.
+   * @param value The value.
+   * @returns The encoded value.
+   */
+  encodeValue(value: string): string {
+    return encodeURIComponent(value);
+  }
+
+  /**
+   * Decodes an encoded URL parameter or query-string key.
+   * @param key The encoded key name.
+   * @returns The decoded key name.
+   */
+  decodeKey(key: string): string {
+    return decodeURIComponent(key);
+  }
+
+  /**
+   * Decodes an encoded URL parameter or query-string value.
+   * @param value The encoded value.
+   * @returns The decoded value.
+   */
+  decodeValue(value: string) {
+    return decodeURIComponent(value);
+  }
+}
+
+
 
 @Injectable({
   providedIn: 'root'
@@ -28,12 +68,19 @@ export class HydrusApiService {
 
   constructor(private http: HttpClient, private apiSettings: HydrusApiSettingsService) { }
 
+  apiSet = this.apiSettings.apiSet;
+  apiSet$ = this.apiSettings.apiSet$;
+
+  apiValidConfigChange$ = this.apiSettings.apiValidConfigChange$;
+
+
+
   private get hydrusApiUrl() {
-    return this.apiSettings.hydrusApiUrl;
+    return this.apiSettings.hydrusApiUrl();
   }
 
   private get hydrusApiKey() {
-    return this.apiSettings.hydrusApiKey;
+    return this.apiSettings.hydrusApiKey();
   }
 
   public getAPIUrl(): string {
@@ -50,8 +97,11 @@ export class HydrusApiService {
     const cacheHeaders: Record<string, string> = noCache ? {
       'Cache-Control': 'no-cache'
     } : { };
+
+    const requestParams = new HttpParams({fromObject: params, encoder: new CustomHttpUrlEncodingCodec()});
+
     return this.http.get<T & Partial<HydrusVersionResponse>>(this.getAPIUrl() + path, {
-      params,
+      params: requestParams,
       headers: {...this.headers, ...cacheHeaders}
     });
   }
@@ -263,8 +313,10 @@ export class HydrusApiService {
    * @param simple true or false (optional, defaulting to true)
    */
   public getPageInfo(page_key: string, simple?: string) {
-    let httpParams: HttpParams = new HttpParams().set('page_key', page_key);
-    if (simple) { httpParams = httpParams.set('simple', simple); }
+    let httpParams: AngularHttpParams = {page_key}
+    if (simple) {
+      httpParams =  {...httpParams, simple}
+    }
     return this.apiGet<{page_info: HydrusPage}>('manage_pages/get_page_info', httpParams, true);
   }
 
@@ -328,7 +380,7 @@ export class HydrusApiService {
     tag_service_name?: string,
     tag_display_type?: TagDisplayType
   }) {
-    return this.apiGet<{tags: HydrusTagSearchTag[]}>('add_tags/search_tags', new HttpParams({fromObject: params}));
+    return this.apiGet<{tags: HydrusTagSearchTag[]}>('add_tags/search_tags', params);
   }
 
 
@@ -446,6 +498,9 @@ export class HydrusApiService {
     return this.apiPost<void>('manage_popups/call_user_callable', data);
   }
 
+  public getClientOptions() {
+    return this.apiGet<HydrusClientOptions & {services: HydrusServices}>('manage_database/get_client_options');
+  }
 
 
 }
