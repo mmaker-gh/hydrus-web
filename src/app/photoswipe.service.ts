@@ -14,7 +14,7 @@ import { canOpenInPhotopea, getPhotopeaUrlForFile } from './photopea';
 import { SettingsService } from './settings.service';
 import { MatButton } from '@angular/material/button';
 import { ThemeService } from './theme/theme.service';
-import { MatLegacySnackBar as MatSnackBar } from '@angular/material/legacy-snack-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { ErrorService } from './error.service';
 
 
